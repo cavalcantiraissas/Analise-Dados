@@ -1,0 +1,20 @@
+Eventos,Classificacao,Peso,Justificativa
+Waiver de Não Pagamento de Juros/Amortização,Negativo,-1,Sinaliza inadimplência efetiva; credor concede tolerância formal. Equivalente a uma grace-period extension pós-default segundo S&P/Moody's.
+Carência de Pagamento de Juros/Amortização,Negativo,-1,Concessão de prazo para pagamento indica que o devedor não tem fluxo de caixa suficiente para honrar obrigações na data original.
+Aditamento com repactuação do fluxo de pagamento,Negativo,-1,Modificação do cronograma de amortização/juros é tratada como Distressed Exchange pelas agências quando decorre de incapacidade de pagamento.
+Waiver de Descumprimento de Índices Financeiros,Negativo,-1,"Covenant breach – o devedor violou índices financeiros contratados (leverage, cobertura de juros etc.). Pré-requisito frequente de rebaixamento."
+Recomposição de Fundo de reserva/Liquidez,Positivo,1,Restabelecimento do colchão de liquidez reforça a estrutura da operação e sinaliza comprometimento do devedor com suas obrigações.
+Descumprimento de Índice de Cobertura,Negativo,-1,Quebra direta de covenant de cobertura de dívida. Pode acionar vencimento antecipado se não mitigado por waiver.
+Aprovado declaração de vencimento antecipado,Negativo,-1,Credores declararam aceleração da dívida – evento de default técnico severo. Pressiona fortemente o rating.
+Waiver para não declarar vencimento antecipado,Negativo,-1,Implica que o gatilho de vencimento antecipado foi acionado (evento negativo subjacente). A abstenção alivia mas não elimina o risco.
+Descumprimento de razão de garantia,Negativo,-1,LTV ou razão de garantia abaixo do mínimo contratual. Sinaliza deterioração do colateral relativa ao saldo devedor.
+Pedido de Recuperação Judicial/Extrajudicial,Negativo,-1,Evento de crédito extremo – equivalente a bankruptcy filing. Implica default ou iminência de default segundo todas as agências.
+Resgate/Recompra Antecipado Facultativo,Positivo,1,Exercício voluntário de call option indica disponibilidade de caixa e reduz endividamento – ação pró-crédito.
+Resgate/Recompra Antecipado Obrigatório,Negativo,-1,"Recompra compulsória geralmente acionada por eventos adversos (liquidez excessiva por sinistro, inadimplência do lastro etc.)."
+Waiver de entrega de demonstração financeira,Negativo,-1,Não entrega de demonstrações financeiras viola covenant de transparência. Pode indicar problemas operacionais ou de governança.
+Prorrogação de vencimento,Negativo,-1,Extensão de prazo tipicamente decorre de incapacidade de refinanciar ou pagar o principal; tratada como Distressed Exchange pela Fitch.
+Rebaixamento de Rating de Agência de Risco,Negativo,-1,Ação formal de downgrade – indicador-chave de deterioração de crédito. Aumenta custo de capital e pode acionar covenants de rating.
+Melhora de Rating de Agência de Risco,Positivo,1,Upgrade formal – reconhecimento de melhora na capacidade de pagamento e/ou perspectivas mais favoráveis.
+Manutenção de Rating de Agência de Risco,Neutro,0,Afirmação de rating sem mudança – não altera a percepção de risco. Pode sinalizar estabilidade em cenário de revisão.
+Prestação de Garantias Adicionais,Neutro,0,"Reforço de colateral pode ser pré-acordado ou acionado por triggers. Protege o credor, mas sinaliza deterioração do LTV original. Classificado como Neutro por decisão do analista (poderia ser Negativo)."
+Aprovação das demonstrações financeiras do patrimônio separado,Neutro,0,Evento administrativo/rotineiro. Aprovação das DFs do patrimônio separado em AGE/AGO sem impacto material no fluxo de pagamentos.

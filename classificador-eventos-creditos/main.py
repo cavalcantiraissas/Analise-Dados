@@ -1,23 +1,17 @@
 """
    CLASSIFICADOR DE EVENTOS DE CRÉDITO & CONTABILIZAÇÃO DE FATOS RELEVANTES
-   Mercado Brasileiro de Securitização (CRA / CRI)
+   Mercado Brasileiro de Securitização (CRA / CRI) - VERSÃO 2.0
    Compatível com Python 3.11
 
    METODOLOGIA:
-   - Os eventos são classificados com base em palavras‑chave presentes no
-     resumo, categoria e tipo do fato relevante.
-   - Um dicionário de sinônimos normaliza termos comuns (incluindo acentos)
-     antes da busca.
-   - Cada regra pode ter palavras obrigatórias e palavras exclusoras.
-   - A primeira regra que satisfaz todas as obrigatórias e nenhuma exclusora
-     define o evento.
-   - Eventos não identificados recebem classificação "Neutro" e peso 0,
-     pois não impactam a análise de crédito.
+   - Normalização de texto com dicionário de sinônimos (inclui acentos e plurais).
+   - Regras baseadas em palavras obrigatórias e exclusoras.
+   - Cobertura aprimorada para rating, assembleias, aditamentos e índices financeiros.
 
-   REFERÊNCIAS:
-   - S&P Global Ratings: critérios para distressed exchanges e covenant breaches.
-   - Moody's: definições de eventos de crédito em securitizações.
-   - Fitch Ratings: tratamento de grace periods e extensões forçadas.
+   HISTÓRICO DE VERSÕES:
+   - v2.0: Sinônimos expandidos, nova regra para "observação negativa",
+           plural "fluxo de pagamentos", regras para assembleias com recompra/waiver.
+   - v1.0: Versão inicial com correções de acentos e exclusões refinadas.
 """
 
 import logging
@@ -59,7 +53,7 @@ COL_CLASSIF_OUT = "Classificacao"
 COL_PESO_OUT    = "Peso"
 
 
-#  DICIONÁRIO DE SINÔNIMOS (inclui normalização de acentos)
+#  DICIONÁRIO DE SINÔNIMOS (expandido)
 SYNONYM_MAP: Dict[str, str] = {
     # Inadimplência
     "inadimplência": "inadimpl",
@@ -86,14 +80,18 @@ SYNONYM_MAP: Dict[str, str] = {
     "melhora": "upgrade",
     "perspectiva negativa": "perspectiva negativa",
     "perspectiva positiva": "perspectiva positiva",
+    "observação": "observacao",
+    "observação negativa": "observacao negativa",
     "creditwatch": "creditwatch",
     # Waiver
     "waiver": "waiver",
     "dispensa": "waiver",
     "anuência": "waiver",
-    # Covenants
+    # Covenants e índices
     "covenant": "covenant",
     "índice financeiro": "covenant",
+    "índice de alavancagem": "alavancagem",
+    "alavancagem": "alavancagem",
     "cobertura": "cobertura",
     "garantia": "garantia",
     "garantias": "garantia",
@@ -107,14 +105,17 @@ SYNONYM_MAP: Dict[str, str] = {
     "vencimento antecipado": "vencimento antecipado",
     "aceleração da dívida": "vencimento antecipado",
     "cross default": "vencimento antecipado",
-    # Resgate
+    # Resgate e recompra
     "resgate": "resgate",
     "recompra": "recompra",
     "amortização": "amortizacao",
     "obrigatório": "obrigatorio",
     "obrigatória": "obrigatorio",
-    # Fluxo de pagamento
+    "facultativo": "facultativo",
+    "prêmio": "premio",
+    # Fluxo de pagamento (inclui plural)
     "fluxo de pagamento": "fluxo pagamento",
+    "fluxo de pagamentos": "fluxo pagamento",
     "cronograma": "cronograma",
     "repactuação": "repactuacao",
     # Assembleia
@@ -136,10 +137,12 @@ SYNONYM_MAP: Dict[str, str] = {
     "pagamento": "pagamento",
     "juros": "juros",
     "amortização": "amortizacao",
+    "cura": "cura",
+    "regularização": "regularizacao",
 }
 
 
-#  TABELA MESTRE DE EVENTOS (classificação + peso + justificativa)
+#  TABELA MESTRE DE EVENTOS
 EVENT_MASTER: Dict[str, Tuple[str, str]] = {
     "Waiver de Não Pagamento de Juros/Amortização": (
         "Negativo",
@@ -246,10 +249,7 @@ PESO_MAP: Dict[str, int] = {
 }
 
 
-#  REGRAS DE MAPEAMENTO
-#  Cada regra: (keywords_obrigatorias, keywords_exclusoras, nome_do_evento)
-#  As palavras já devem estar normalizadas (sinônimos aplicados).
-
+#  REGRAS DE MAPEAMENTO 
 #  Exclusões comuns para aditamentos que NÃO alteram fluxo
 EXCLUSAO_SEM_ALTERACAO = [
     "sem alteracoes", "correcao", "erro material",
@@ -258,22 +258,22 @@ EXCLUSAO_SEM_ALTERACAO = [
 
 MAPPING_RULES: List[Tuple[List[str], List[str], str]] = [
 
-    # RECUPERAÇÃO JUDICIAL
+    #  RECUPERAÇÃO JUDICIAL 
     (["recuperacao judicial"], [], "Pedido de Recuperação Judicial/Extrajudicial"),
     (["recuperacao extrajudicial"], [], "Pedido de Recuperação Judicial/Extrajudicial"),
 
-    # RATING – REBAIXAMENTO 
+    #  RATING – REBAIXAMENTO 
     (["downgrade", "rating"], [], "Rebaixamento de Rating de Agência de Risco"),
     (["rebaixamento", "rating"], [], "Rebaixamento de Rating de Agência de Risco"),
     (["observacao negativa", "rating"], [], "Rebaixamento de Rating de Agência de Risco"),
     (["creditwatch negative"], [], "Rebaixamento de Rating de Agência de Risco"),
     (["perspectiva negativa", "rating"], [], "Rebaixamento de Rating de Agência de Risco"),
 
-    # RATING – MELHORA
+    #  RATING – MELHORA 
     (["upgrade", "rating"], [], "Melhora de Rating de Agência de Risco"),
     (["perspectiva positiva", "rating"], [], "Melhora de Rating de Agência de Risco"),
 
-    #  RATING – MANUTENÇÃO
+    #  RATING – MANUTENÇÃO 
     (["relatorio de agencia de rating", "mantem"], [], "Manutenção de Rating de Agência de Risco"),
     (["relatorio de agencia de rating", "manteve"], [], "Manutenção de Rating de Agência de Risco"),
     (["relatorio de agencia de rating", "afirma"], [], "Manutenção de Rating de Agência de Risco"),
@@ -284,7 +284,7 @@ MAPPING_RULES: List[Tuple[List[str], List[str], str]] = [
       "perspectiva negativa", "perspectiva positiva"],
      "Manutenção de Rating de Agência de Risco"),
 
-    #  VENCIMENTO ANTECIPADO – DECLARADO
+    #  VENCIMENTO ANTECIPADO – DECLARADO 
     (["vencimento antecipado automatico"], [], "Aprovado declaração de vencimento antecipado"),
     (["declarando vencimento antecipado"], [], "Aprovado declaração de vencimento antecipado"),
     (["vencimento antecipado", "aprovada"], [], "Aprovado declaração de vencimento antecipado"),
@@ -298,9 +298,7 @@ MAPPING_RULES: List[Tuple[List[str], List[str], str]] = [
      ["automatico", "declarando", "aprovada"], "Waiver para não declarar vencimento antecipado"),
 
     #  INADIMPLÊNCIA / NÃO PAGAMENTO 
-    # Regra mais ampla: captura qualquer menção a inadimplência
     (["inadimpl"], [], "Waiver de Não Pagamento de Juros/Amortização"),
-    # Regras específicas com pagamento (mantidas)
     (["nao repassou", "patrimonio separado"], [], "Waiver de Não Pagamento de Juros/Amortização"),
     (["irregularidade", "gestao de recursos"], [], "Waiver de Não Pagamento de Juros/Amortização"),
     (["impossibilitando o pagamento"], [], "Waiver de Não Pagamento de Juros/Amortização"),
@@ -309,36 +307,37 @@ MAPPING_RULES: List[Tuple[List[str], List[str], str]] = [
     (["nao havera pagamento"], [], "Waiver de Não Pagamento de Juros/Amortização"),
     (["insuficiencia de recursos", "pagamento"], [], "Waiver de Não Pagamento de Juros/Amortização"),
 
-    # RESGATE OBRIGATÓRIO
+    #  RESGATE OBRIGATÓRIO 
     (["resgate antecipado obrigatorio"], [], "Resgate/Recompra Antecipado Obrigatório"),
     (["recompra obrigatoria"], [], "Resgate/Recompra Antecipado Obrigatório"),
 
-    # RESGATE FACULTATIVO 
+    #  RESGATE FACULTATIVO 
     (["resgate antecipado facultativo"], [], "Resgate/Recompra Antecipado Facultativo"),
     (["recompra facultativa"], [], "Resgate/Recompra Antecipado Facultativo"),
     (["amortizacao antecipada facultativa"], [], "Resgate/Recompra Antecipado Facultativo"),
     (["pagamento antecipado facultativo"], [], "Resgate/Recompra Antecipado Facultativo"),
 
-    # CARÊNCIA 
+    #  CARÊNCIA 
     (["carencia", "pagamento"], [], "Carência de Pagamento de Juros/Amortização"),
     (["carencia de", "meses"], [], "Carência de Pagamento de Juros/Amortização"),
 
-    # PRORROGAÇÃO 
+    #  PRORROGAÇÃO 
     (["prorrogacao", "vencimento"], [], "Prorrogação de vencimento"),
     (["nova data de vencimento"],
      ["carencia"], "Prorrogação de vencimento"),
 
-    # ADITAMENTO COM REPACTUAÇÃO (exclusões refinadas) 
+    #  ADITAMENTO COM REPACTUAÇÃO (exclusões refinadas) 
     (["aditamento", "repactuacao"], EXCLUSAO_SEM_ALTERACAO,
      "Aditamento com repactuação do fluxo de pagamento"),
     (["aditamento", "cronograma", "pagamento"], EXCLUSAO_SEM_ALTERACAO,
      "Aditamento com repactuação do fluxo de pagamento"),
+    # Novo: captura plural "fluxo de pagamentos"
     (["aditamento", "fluxo pagamento"], EXCLUSAO_SEM_ALTERACAO,
      "Aditamento com repactuação do fluxo de pagamento"),
     (["aditamento", "cronograma de amortizacao"], EXCLUSAO_SEM_ALTERACAO,
      "Aditamento com repactuação do fluxo de pagamento"),
 
-    # RECOMPOSIÇÃO DE FUNDO 
+    #  RECOMPOSIÇÃO DE FUNDO 
     (["recomposicao", "fundo reserva"], [], "Recomposição de Fundo de reserva/Liquidez"),
     (["recomposicao", "fundo liquidez"], [], "Recomposição de Fundo de reserva/Liquidez"),
     (["constituicao", "fundo reserva"], [], "Recomposição de Fundo de reserva/Liquidez"),
@@ -358,6 +357,7 @@ MAPPING_RULES: List[Tuple[List[str], List[str], str]] = [
     #  WAIVER DE ÍNDICES FINANCEIROS 
     (["waiver", "indice"], [], "Waiver de Descumprimento de Índices Financeiros"),
     (["waiver", "covenant"], [], "Waiver de Descumprimento de Índices Financeiros"),
+    (["covenant", "descumprimento"], [], "Waiver de Descumprimento de Índices Financeiros"),
 
     #  WAIVER DE ENTREGA DE DEMONSTRAÇÕES 
     (["waiver", "demonstracoes"], [], "Waiver de entrega de demonstração financeira"),
@@ -367,6 +367,12 @@ MAPPING_RULES: List[Tuple[List[str], List[str], str]] = [
     (["garantia adicional"], [], "Prestação de Garantias Adicionais"),
     (["cessao fiduciaria", "recebiveis", "inclusao"], [], "Prestação de Garantias Adicionais"),
     (["reforço de garantia"], [], "Prestação de Garantias Adicionais"),
+
+    #  ASSEMBLEIAS – NOVAS REGRAS 
+    # Recompra facultativa decidida em assembleia
+    (["assembleia", "recompra facultativa"], [], "Resgate/Recompra Antecipado Facultativo"),
+    # Waiver de prêmio de resgate (neutro, pois não impacta fluxo)
+    (["assembleia", "waiver de premio"], [], "Aprovação das demonstrações financeiras do patrimônio separado"),
 
     #  APROVAÇÃO DAS DEMONSTRAÇÕES DO PATRIMÔNIO SEPARADO 
     (["aprovacao", "demonstracoes", "patrimonio separado"], [],
@@ -386,12 +392,8 @@ MAPPING_RULES: List[Tuple[List[str], List[str], str]] = [
 ]
 
 
-#  FUNÇÕES AUXILIARES
+#  FUNÇÕES AUXILIARES (mantidas, com pequena otimização)
 def normalize_text(text: object, use_synonyms: bool = True) -> str:
-    """
-    Normaliza texto: converte para str, minúsculas, remove espaços extras,
-    e opcionalmente aplica substituição de sinônimos.
-    """
     if text is None or (isinstance(text, float) and pd.isna(text)):
         return ""
     s = str(text).strip().lower()
@@ -404,7 +406,6 @@ def normalize_text(text: object, use_synonyms: bool = True) -> str:
 
 
 def load_and_validate_csv(path: Path, required_cols: List[str]) -> pd.DataFrame:
-    """Carrega e valida CSV."""
     if not path.exists():
         raise FileNotFoundError(f"Arquivo não encontrado: {path}")
     logger.info(f"Carregando '{path.name}' …")
@@ -426,7 +427,6 @@ def load_and_validate_csv(path: Path, required_cols: List[str]) -> pd.DataFrame:
 
 
 def build_eventos_table(df_raw: pd.DataFrame) -> pd.DataFrame:
-    """Constrói tabela mestre de eventos."""
     df = df_raw.copy()
     classificacoes, pesos, justificativas = [], [], []
     for _, row in df.iterrows():
@@ -449,7 +449,6 @@ def build_eventos_table(df_raw: pd.DataFrame) -> pd.DataFrame:
 
 
 def match_event(resumo: object, categoria: object, tipo: object) -> Optional[str]:
-    """Aplica as regras de mapeamento usando texto normalizado com sinônimos."""
     text = (
         normalize_text(resumo, use_synonyms=True) + " " +
         normalize_text(categoria, use_synonyms=True) + " " +
@@ -464,7 +463,6 @@ def match_event(resumo: object, categoria: object, tipo: object) -> Optional[str
 
 
 def classify_fatos(df_fatos: pd.DataFrame, eventos_map: Dict[str, Tuple[str, int]]) -> pd.DataFrame:
-    """Classifica fatos e adiciona colunas."""
     df = df_fatos.copy()
     ev_ids, cls_out, wgt_out = [], [], []
     nao_id = 0
@@ -490,7 +488,6 @@ def classify_fatos(df_fatos: pd.DataFrame, eventos_map: Dict[str, Tuple[str, int
     return df
 
 
-#  MÉTRICAS E SAÍDA 
 def compute_metrics(df: pd.DataFrame) -> dict:
     total = len(df)
     pos = int((df[COL_CLASSIF_OUT] == "Positivo").sum())
@@ -582,7 +579,7 @@ def save_outputs(df_eventos, df_fatos_class, df_consolidated, metrics):
 
 
 def run_pipeline():
-    logger.info("═"*60 + "\n  PIPELINE DE EVENTOS DE CRÉDITO – INÍCIO\n" + "═"*60)
+    logger.info("═"*60 + "\n  PIPELINE DE EVENTOS DE CRÉDITO – V2.0 (REFINADO)\n" + "═"*60)
     df_eventos_raw = load_and_validate_csv(EVENTOS_FILE, [COL_EVENTO_NOME])
     df_fatos_raw = load_and_validate_csv(FATOS_FILE, [COL_CATEG, COL_RESUMO])
     df_eventos = build_eventos_table(df_eventos_raw)

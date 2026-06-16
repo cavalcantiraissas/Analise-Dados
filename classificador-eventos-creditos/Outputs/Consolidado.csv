@@ -1,0 +1,16 @@
+Evento,Classificacao,Peso_Unitario,Ocorrencias,Soma_Pesos
+Pedido de Recuperação Judicial/Extrajudicial,Negativo,-1,33,-33
+Aditamento com repactuação do fluxo de pagamento,Negativo,-1,26,-26
+Waiver de Não Pagamento de Juros/Amortização,Negativo,-1,18,-18
+Waiver para não declarar vencimento antecipado,Negativo,-1,14,-14
+Carência de Pagamento de Juros/Amortização,Negativo,-1,8,-8
+Prorrogação de vencimento,Negativo,-1,5,-5
+Aprovado declaração de vencimento antecipado,Negativo,-1,4,-4
+Rebaixamento de Rating de Agência de Risco,Negativo,-1,3,-3
+Resgate/Recompra Antecipado Obrigatório,Negativo,-1,2,-2
+Waiver de entrega de demonstração financeira,Negativo,-1,2,-2
+Manutenção de Rating de Agência de Risco,Neutro,0,52,0
+Aprovação das demonstrações financeiras do patrimônio separado,Neutro,0,30,0
+Prestação de Garantias Adicionais,Neutro,0,1,0
+Resgate/Recompra Antecipado Facultativo,Positivo,1,12,12
+Recomposição de Fundo de reserva/Liquidez,Positivo,1,1,1
